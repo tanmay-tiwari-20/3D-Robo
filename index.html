@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3D Robo Model</title>
   <style>
     html,
@@ -20,10 +21,47 @@
       width: 100vw;
       height: 100vh;
     }
+
+    /* Loader styles */
+    #loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 8px solid #333;
+      border-top: 8px solid #ffffff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
   </style>
 </head>
 
 <body>
+  <!-- Loader -->
+  <div id="loader">
+    <div class="spinner"></div>
+  </div>
 
   <!-- Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -33,14 +71,19 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
   <script>
-    // Scene setup
     const scene = new THREE.Scene();
 
-    // Camera
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 1.5, 5);
 
-    // Renderer
+    function adjustCameraForScreen() {
+      if (window.innerWidth < 600) {
+        camera.position.set(0, 1.5, 7);
+      } else {
+        camera.position.set(0, 1.5, 5);
+      }
+    }
+    adjustCameraForScreen();
+
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -61,20 +104,15 @@
     controls.minPolarAngle = 0;
     controls.maxPolarAngle = Math.PI / 2;
 
-    // Cursor interaction
     const canvas = renderer.domElement;
     canvas.style.cursor = 'grab';
-
     controls.addEventListener('start', () => {
       canvas.style.cursor = 'grabbing';
     });
-
     controls.addEventListener('end', () => {
       canvas.style.cursor = 'grab';
     });
 
-
-    // Lights (unchanged as per your request)
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
 
@@ -104,18 +142,18 @@
     pointLightSide.position.set(5, 1, 2);
     scene.add(pointLightSide);
 
-    // Load Model
     const loader = new THREE.GLTFLoader();
     let model, mixer;
 
     loader.load('robo.glb', function (gltf) {
       model = gltf.scene;
-      model.scale.set(1.5, 1.5, 1.5);
 
-      // Center model
+      const scaleFactor = window.innerWidth < 600 ? 1.2 : 1.5;
+      model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
       const box = new THREE.Box3().setFromObject(model);
       const center = box.getCenter(new THREE.Vector3());
-      model.position.sub(center); // Shift to origin
+      model.position.sub(center);
 
       model.traverse((node) => {
         if (node.isMesh) {
@@ -132,6 +170,9 @@
           mixer.clipAction(clip).play();
         });
       }
+
+      // Hide loader once model is ready
+      document.getElementById('loader').style.display = 'none';
     });
 
     const clock = new THREE.Clock();
@@ -144,14 +185,13 @@
     }
     animate();
 
-    // Resize listener
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      adjustCameraForScreen();
     });
   </script>
-
 </body>
 
 </html>
